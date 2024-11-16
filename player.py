@@ -2,13 +2,27 @@ from board import Board
 import random
 import pygame
 import time
+import pickle
 
 PLAYER_1 = 1
 PLAYER_2 = -1
-    
+
+def save_cache(cache, filename="cached_moves.pkl"):
+    with open(filename, "wb") as f:
+        pickle.dump(cache, f)
+
+def load_cache(filename="cached_moves.pkl"):
+    try:
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    except FileNotFoundError:
+        return {}
+
 def minimax(board: Board, depth, alpha, beta, maximisingPlayer, cache):
+    # * Hashes the board (the state of the current board in a tuple(tuple())) format
     board_hash = board.hash_board()
-    print("Board hash: ", board_hash)
+    # print(board_hash) 
+    # * Checks if the current board state is in the cached memory
     if board_hash in cache:
         cached_result = cache[board_hash]
         # print("Cached result: ", cached_result)
@@ -131,11 +145,11 @@ def main():
     max_player = True
     min_player = False
     
-    cache = {}
+    cache = load_cache()
     board = Board(screen)
     
     while running:
-        if turn == 1:
+        if turn == 1: # Human player's turn
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -148,15 +162,12 @@ def main():
                         if  board.check_win(board, turn):
                             print("Human player wins")
                             running = False
-                        turn *= -1
+                        turn *= -1 # Switch to AI
                         board.draw_board()
        
         if turn == -1:  # AI player's turn
-            start_time = time.time()
-            col = minimax(board, depth=8, alpha= -float('inf'), beta = float('inf'), maximisingPlayer=min_player, cache=cache)[0]
+            col = minimax(board, depth=7, alpha= -float('inf'), beta = float('inf'), maximisingPlayer=min_player, cache=cache)[0]
             end_time = time.time()
-            # print(end_time - start_time)
-            # if col is not None:
             board.play_move(col, turn)
             if board.check_win(board, turn):
                 print("AI player wins")
@@ -168,6 +179,7 @@ def main():
             running = False
         
         board.draw_board()
+        save_cache(cache)
     end = True
     while end:
         for event in pygame.event.get():
