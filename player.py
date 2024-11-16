@@ -6,7 +6,14 @@ import time
 PLAYER_1 = 1
 PLAYER_2 = -1
     
-def minimax(board: Board, depth, alpha, beta, maximisingPlayer):
+def minimax(board: Board, depth, alpha, beta, maximisingPlayer, cache):
+    board_hash = board.hash_board()
+    print("Board hash: ", board_hash)
+    if board_hash in cache:
+        cached_result = cache[board_hash]
+        # print("Cached result: ", cached_result)
+        if cached_result is not None:
+            return cache[board_hash]
     # * Gets all the valid locations on the current board
     locations = board.find_all_valid_moves(board)
     is_terminal = board.is_terminal_node(board)
@@ -15,14 +22,17 @@ def minimax(board: Board, depth, alpha, beta, maximisingPlayer):
     if depth <= 0 or is_terminal:
         if is_terminal:
             if board.check_win(board, PLAYER_1):
-                return (None, 99999)
+                result =  (None, 99999)
             elif board.check_win(board, PLAYER_2):
-                return (None, -99999)
+                result = (None, -99999)
             else:
-                return (None, 0)
+                result = (None, 0)
         else:
-            return (None, board.score_position(board, PLAYER_1 if maximisingPlayer else PLAYER_2))  
+            result = (None, board.score_position(board, PLAYER_1 if maximisingPlayer else PLAYER_2))  
     
+        if result[0] is not None:
+            cache[board_hash] = result
+        return result
     # * If the current player is the maximising player  
     if maximisingPlayer:
         value = -float('inf')
@@ -38,7 +48,7 @@ def minimax(board: Board, depth, alpha, beta, maximisingPlayer):
         
             board_copy.play_move(col, PLAYER_1)
             # * Call minimax recursively 
-            new_score = minimax(board_copy, depth - 1, alpha, beta, False)[1]
+            new_score = minimax(board_copy, depth - 1, alpha, beta, False, cache)[1]
             
             if new_score > value:
                 value = new_score
@@ -52,7 +62,7 @@ def minimax(board: Board, depth, alpha, beta, maximisingPlayer):
         if column is None:
             column = locations[0]
 
-        return (column, value)
+        result = (column, value)
     
     else:
         value = float('inf')
@@ -61,12 +71,13 @@ def minimax(board: Board, depth, alpha, beta, maximisingPlayer):
         for col in locations:
             board_copy = board.copy_board()
             row = board_copy.get_next_open_row(board, col)
+            
             if row is None:
                 continue
             
             board_copy.play_move(col, PLAYER_2)
             
-            new_score = minimax(board_copy, depth - 1, alpha, beta, True)[1]
+            new_score = minimax(board_copy, depth - 1, alpha, beta, True, cache)[1]
         
             if new_score < value:
                 value = new_score
@@ -79,8 +90,37 @@ def minimax(board: Board, depth, alpha, beta, maximisingPlayer):
             
         if column is None:
             column = locations[0]
-        return (column, value)
-         
+        result = (column, value)
+    cache[board_hash] = result
+    return result
+    
+# def iterative_deeping_search(board : Board, time_limit, max_depth, player):
+#     start_time = time.time()
+#     best_move = None
+#     # board_copy = board.copy_board()
+#     vaild_moves = board.find_all_valid_moves(board)
+#     for depth in range(1, max_depth + 1):
+#         print("Entering depth: ", depth)
+        
+#         if time.time() - start_time > time_limit:
+#             print("Time limit reached.")
+#             break
+#         best_eval = float('-inf')
+        
+#         for move in vaild_moves:
+#             board_copy = board.copy_board()
+#             board_copy.play_move(move, player)
+#             best_move, eval = minimax(board_copy, depth, float('-inf'), float('inf'), False)
+
+#             if eval < best_eval:
+#                 best_eval = eval
+#                 best_move = move
+                
+#         if depth == max_depth:
+#             print("Max depth reached. Best move:", best_move)
+#             return best_move
+#     return best_move
+  
 def main():
     pygame.init()
     running = True
@@ -91,8 +131,9 @@ def main():
     max_player = True
     min_player = False
     
+    cache = {}
     board = Board(screen)
-
+    
     while running:
         if turn == 1:
             for event in pygame.event.get():
@@ -105,22 +146,27 @@ def main():
                     if row != None:  
                         board.play_move(column, turn)
                         if  board.check_win(board, turn):
-                            print("Human wins!")
+                            print("Human player wins")
                             running = False
                         turn *= -1
+                        board.draw_board()
        
         if turn == -1:  # AI player's turn
             start_time = time.time()
-            col = minimax(board, depth=8, alpha= -float('inf'), beta = float('inf'), maximisingPlayer=min_player)[0]
+            col = minimax(board, depth=8, alpha= -float('inf'), beta = float('inf'), maximisingPlayer=min_player, cache=cache)[0]
             end_time = time.time()
-            print(end_time - start_time)
-            if col is not None:
-                board.play_move(col, turn)
-                if board.check_win(board, turn):
-                    print("AI wins!")
-                    running = False
-                turn *= -1  # Switch to human player
-                    
+            # print(end_time - start_time)
+            # if col is not None:
+            board.play_move(col, turn)
+            if board.check_win(board, turn):
+                print("AI player wins")
+                running = False
+            turn *= -1  # Switch to human player
+        # * Checks for a tie in the game
+        if len(board.find_all_valid_moves(board)) == 0 and board.is_terminal_node:
+            print("Tie!")
+            running = False
+        
         board.draw_board()
     end = True
     while end:

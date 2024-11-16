@@ -60,6 +60,7 @@ class Board:
         # Could be faster as it really only needs to check the area that a piece was just placed
         # TODO: Make check faster
         for i in range(7):
+            count = 0
             for j in range(6):
                 if map[j][i] == player:
                     count += 1
@@ -70,6 +71,7 @@ class Board:
                     
         count = 0
         for i in range(6):
+            count = 0
             for j in range(7):
                 if map[i][j] == player:
                     count += 1  
@@ -176,11 +178,14 @@ class Board:
     def copy_board(self):
         # * Manually copy only necessary attributes to avoid pygame surfaces
         new_board = Board(self.screen)
-        new_board.BOARD = [row[:] for row in self.BOARD]  #
-        return new_board        
+        new_board.BOARD = [row[:] for row in self.BOARD]  # Copy the grid state
+        return new_board
     
     def get_next_open_row(self, board, col):
         # * Finds the next available row that can be played
         for r in range(6):
             if self.BOARD[r][col] == 0 and self.valid_move(board, col):
                 return r
+            
+    def hash_board(self):
+        return tuple(tuple(row) for row in self.BOARD)
