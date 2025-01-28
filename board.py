@@ -2,6 +2,7 @@
 import pygame
 import sys
 import copy
+import hashlib
 
 class Board:
     
@@ -42,9 +43,16 @@ class Board:
         pygame.display.flip()
         
     def play_move(self, column, player) -> None:
-        # Plays the move on the inputted colmun
+        # Check if the column index is within the valid range
+        if column is None:
+            return
+        if column < 0 or column >= 7:
+            raise ValueError("Column index out of range")
+    
+        # Plays the move on the inputted column
         for i in range(5, -1, -1):
             # Makes sure it plays it at the lowest possible position
+            # print(i)
             if self.BOARD[i][column] == 0:
                 self.BOARD[i][column] = player
                 break
@@ -65,6 +73,7 @@ class Board:
                 if map[j][i] == player:
                     count += 1
                     if count == 4:
+                        
                         return True
                 else:
                     count = 0
@@ -96,12 +105,11 @@ class Board:
             if board.BOARD[i][column] == 0:
                 return i
         return None
-    
     def find_all_valid_moves(self, board) -> list[int]:
-        # * Finds all the columns that can be played on
+        # * Finds all the columns that can be played ons
         valid_moves = []
         for col in range(7):
-            if self.valid_move(board, col) is not None:
+            if self.valid_move(board, col) is not None:  # Check if there's a valid row
                 valid_moves.append(col)
         return valid_moves
     
@@ -115,7 +123,7 @@ class Board:
 
         # Score centre column
         centre_array = [board[r][7 // 2] for r in range(6)]
-        score += centre_array.count(piece) * 2
+        score += centre_array.count(piece) * 10
 
         # Horizontal scoring
         for row in range(6):
@@ -151,11 +159,13 @@ class Board:
                 # Check for opponent's diagonal threat and block it
                 if sum(1 for i in range(4) if board[row + i][col + i] == opp_piece) == 3 and \
                 sum(1 for i in range(4) if board[row + i][col + i] == 0) == 1:
-                    score -= 1000  # Penalty for not blocking
+                    score -= 100  # Penalty for not blocking
                 if sum(1 for i in range(4) if board[row + 3 - i][col + i] == opp_piece) == 3 and \
                 sum(1 for i in range(4) if board[row + 3 - i][col + i] == 0) == 1:
-                    score -= 1000  # Penalty for not blocking
-
+                    score -= 100  # Penalty for not blocking
+        
+        if piece == -1:
+            score *= -1
         return score
 
     def evaluate_counts(self, count_piece, count_opp, count_empty):
@@ -169,7 +179,7 @@ class Board:
             score += 2
         elif count_opp == 3 and count_empty == 1:
             score -= -4
-        return score
+        return score        
     
     def is_terminal_node(self, board):
         # * Checks if there are any available moves left
@@ -183,9 +193,7 @@ class Board:
     
     def get_next_open_row(self, board, col):
         # * Finds the next available row that can be played
-        for r in range(6):
-            if self.BOARD[r][col] == 0 and self.valid_move(board, col):
-                return r
+        return self.valid_move(board, col)
             
     def hash_board(self):
         return tuple(tuple(row) for row in self.BOARD)
